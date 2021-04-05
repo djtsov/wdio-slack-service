@@ -27,15 +27,21 @@ class SlackService {
         this.tests++;
 
         const { error, passed } = results;
-    
-        let testError = error.matcherResult
-          .message()
-          .replace(
-            /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-            ""
-          );
-    
-    
+
+        let testError = 'without error';
+        if (error) {
+            if (error.matcherResult && typeof error.matcherResult.message == 'function') {
+                testError = error.matcherResult
+                    .message()
+                    .replace(
+                        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+                        ""
+                    )
+            } else {
+                testError = String(error);
+            }
+        }
+
         let attach = {
           color: failedColor,
           author_name: test.fullName || `${test.parent} - ${test.title}`,
@@ -50,7 +56,7 @@ class SlackService {
     }
 
     async after() {
-        if (this.config.notifyOnlyOnFailure === true) {
+        if ((this.config.notifyOnlyOnFailure === true && this.failedTests > 0) || this.config.notifyOnlyOnFailure === false) {
             this.attachments[0].title += `Total tests: ${
               this.tests
             } \n Total passed: ${this.tests - this.failedTests} \n Total failed: ${
